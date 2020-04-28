@@ -15,69 +15,66 @@
  
  ## Code Example
  */
+
 import Foundation
 
-// MARK: - Originator
-public class Game: Codable {
+//MARK:- Oiginator
+class Game: Codable {
   
-  public class State: Codable {
-    public var attemptsRemaining: Int = 3
-    public var level: Int = 1
-    public var score: Int = 0
-  }
-  public var state = State()
-  
-  public func rackUpMassivePoints() {
-    state.score += 9002
+  class State: Codable {
+    var score = 0
+    var level = 1
+    var attemptsRemaining = 3
   }
   
-  public func monstersEatPlayer() {
+  var state = State()
+  
+  func rackUpMassivePoints() {
+    state.score += 1000
+  }
+  func monsterEatPlayer() {
     state.attemptsRemaining -= 1
   }
+  
 }
 
-// MARK: - Memento
+//MARK:- Memento (the stored object)
 typealias GameMemento = Data
 
-// MARK: - CareTaker
-public class GameSystem {
+//MARK:- Care Taker (takes originator converts into memento and persist onto disk, alternatively retrieves memento from disk converts it and returns the originator)
+class GameSystem {
   
-  private let decoder = JSONDecoder()
-  private let encoder = JSONEncoder()
-  private let userDefaults = UserDefaults.standard
-  
-  public func save(_ game: Game, title: String) throws {
+  enum GameError: Error {
+    case gameNotFound
+    
+  }
+  //Save Game:- takes the originator, encodes it and persists the encoded state onto the disk
+  func save(_ game: Game, title: String) throws {
+    let encoder = JSONEncoder()
     let data = try encoder.encode(game)
-    userDefaults.set(data, forKey: title)
+    UserDefaults.standard.set(data, forKey: title)
   }
   
-  public func load(title: String) throws -> Game {
-    guard let data = userDefaults.data(forKey: title),
-      let game = try? decoder.decode(Game.self, from: data)
-      else {
-        throw Error.gameNotFound
+  //Load Game:- retrieves the saved statefrom the disk, decodes it and returns to the originator
+  func load(title: String) throws -> Game {
+    let decoder = JSONDecoder()
+    guard let data = UserDefaults.standard.data(forKey: title),
+       let game = try? decoder.decode(Game.self, from: data) else {
+        throw GameError.gameNotFound
     }
     return game
   }
-  
-  public enum Error: String, Swift.Error {
-    case gameNotFound
-  }
 }
 
-// MARK: - Example
 var game = Game()
-game.monstersEatPlayer()
+game.monsterEatPlayer()
 game.rackUpMassivePoints()
 
-// Save Game
 let gameSystem = GameSystem()
 try gameSystem.save(game, title: "Best Game Ever")
 
-// New Game
 game = Game()
 print("New Game Score: \(game.state.score)")
 
-// Load Game
 game = try! gameSystem.load(title: "Best Game Ever")
 print("Loaded Game Score: \(game.state.score)")
